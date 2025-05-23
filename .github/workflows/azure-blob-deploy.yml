@@ -36,12 +36,9 @@ jobs:
               run: pnpm install
 
             - name: Build project
-              run: pnpm build
+              run: cd src/ && pnpm build && ls -l bin/
 
-            - name: List bin directory contents
-              run: ls -l bin/
-
-            - name: Upload bin directory to Azure Blob Storage
+            - name: Upload dist directory to Azure Blob Storage
               uses: azure/CLI@v1
               with:
                   inlineScript: |

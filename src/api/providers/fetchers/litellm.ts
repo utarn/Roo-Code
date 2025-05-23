@@ -26,26 +26,79 @@ export async function getLiteLLMModels(apiKey: string, baseUrl: string): Promise
 		// Process the model info from the response
 		if (response.data && response.data.data && Array.isArray(response.data.data)) {
 			for (const model of response.data.data) {
+				console.log(model)
 				const modelName = model.model_name
 				const modelInfo = model.model_info
 				const litellmModelName = model?.litellm_params?.model as string | undefined
 
 				if (!modelName || !modelInfo || !litellmModelName) continue
 
-				models[modelName] = {
-					maxTokens: modelInfo.max_tokens || 8192,
-					contextWindow: modelInfo.max_input_tokens || 200000,
-					supportsImages: Boolean(modelInfo.supports_vision),
-					// litellm_params.model may have a prefix like openrouter/
-					supportsComputerUse: computerModels.some((computer_model) =>
-						litellmModelName.endsWith(computer_model),
-					),
-					supportsPromptCache: Boolean(modelInfo.supports_prompt_caching),
-					inputPrice: modelInfo.input_cost_per_token ? modelInfo.input_cost_per_token * 1000000 : undefined,
-					outputPrice: modelInfo.output_cost_per_token
-						? modelInfo.output_cost_per_token * 1000000
-						: undefined,
-					description: `${modelName} via LiteLLM proxy`,
+				if (
+					modelName.toLowerCase().includes("gemini-2.5-flash") ||
+					modelName.toLowerCase().includes("gemini-2.5-pro")
+				) {
+					models[modelName] = {
+						maxTokens: 65_535,
+						contextWindow: 1_048_576,
+						supportsImages: true,
+						supportsComputerUse: false,
+						supportsPromptCache: true,
+						inputPrice: modelInfo.input_cost_per_token
+							? modelInfo.input_cost_per_token * 1000000
+							: undefined,
+						outputPrice: modelInfo.output_cost_per_token
+							? modelInfo.output_cost_per_token * 1000000
+							: undefined,
+						description: `${modelName} via LiteLLM proxy (fixed)`,
+					}
+				} else if (modelName.toLowerCase().includes("qwen3")) {
+					models[modelName] = {
+						maxTokens: 40_960,
+						contextWindow: 40_960,
+						supportsImages: true,
+						supportsComputerUse: false,
+						supportsPromptCache: false,
+						inputPrice: modelInfo.input_cost_per_token
+							? modelInfo.input_cost_per_token * 1000000
+							: undefined,
+						outputPrice: modelInfo.output_cost_per_token
+							? modelInfo.output_cost_per_token * 1000000
+							: undefined,
+						description: `${modelName} via LiteLLM proxy (fixed)`,
+					}
+				} else if (modelName.toLowerCase().includes("deepseek")) {
+					models[modelName] = {
+						maxTokens: 163_840,
+						contextWindow: 163_840,
+						supportsImages: true,
+						supportsComputerUse: false,
+						supportsPromptCache: false,
+						inputPrice: modelInfo.input_cost_per_token
+							? modelInfo.input_cost_per_token * 1000000
+							: undefined,
+						outputPrice: modelInfo.output_cost_per_token
+							? modelInfo.output_cost_per_token * 1000000
+							: undefined,
+						description: `${modelName} via LiteLLM proxy (fixed)`,
+					}
+				} else {
+					models[modelName] = {
+						maxTokens: modelInfo.max_tokens || 8192,
+						contextWindow: modelInfo.max_input_tokens || 131_072,
+						supportsImages: Boolean(modelInfo.supports_vision),
+						// litellm_params.model may have a prefix like openrouter/
+						supportsComputerUse: computerModels.some((computer_model) =>
+							litellmModelName.endsWith(computer_model),
+						),
+						supportsPromptCache: Boolean(modelInfo.supports_prompt_caching),
+						inputPrice: modelInfo.input_cost_per_token
+							? modelInfo.input_cost_per_token * 1000000
+							: undefined,
+						outputPrice: modelInfo.output_cost_per_token
+							? modelInfo.output_cost_per_token * 1000000
+							: undefined,
+						description: `${modelName} via LiteLLM proxy`,
+					}
 				}
 			}
 		}

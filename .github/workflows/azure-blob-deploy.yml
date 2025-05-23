@@ -1,0 +1,57 @@
+name: Deploy to Azure Blob Storage
+
+on:
+    push:
+        branches:
+            - tsc
+
+jobs:
+    build-and-deploy:
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+
+            - name: Setup pnpm
+              uses: pnpm/action-setup@v3
+              with:
+                  version: 8
+                  run_install: false
+
+            - name: Get pnpm store directory
+              shell: bash
+              run: |
+                  echo "PNPM_STORE_PATH=$(pnpm store path)" >> $GITHUB_ENV
+
+            - uses: actions/cache@v4
+              name: Setup pnpm cache
+              with:
+                  path: ${{ env.PNPM_STORE_PATH }}
+                  key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
+                  restore-keys: |
+                      ${{ runner.os }}-pnpm-
+
+            - name: Install dependencies
+              run: pnpm install
+
+            - name: Build project
+              run: pnpm build
+
+            - name: List bin directory contents
+              run: ls -l bin/
+
+            - name: Upload bin directory to Azure Blob Storage
+              uses: azure/CLI@v1
+              with:
+                  inlineScript: |
+                      az storage blob upload-batch \
+                        --account-name ${{ secrets.AZURE_STORAGE_ACCOUNT_NAME }} \
+                        --container-name ${{ secrets.AZURE_STORAGE_CONTAINER_NAME }} \
+                        --source bin/ \
+                        --destination . \
+                        --overwrite true
+              env:
+                  AZURE_STORAGE_ACCOUNT_NAME: ${{ secrets.AZURE_STORAGE_ACCOUNT_NAME }}
+                  AZURE_STORAGE_CONTAINER_NAME: ${{ secrets.AZURE_STORAGE_CONTAINER_NAME }}
+                  AZURE_STORAGE_KEY: ${{ secrets.AZURE_STORAGE_KEY }}

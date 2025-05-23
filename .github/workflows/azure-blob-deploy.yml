@@ -36,7 +36,10 @@ jobs:
               run: pnpm install
 
             - name: Build project
-              run: cd src/ && pnpm build && ls -l bin/
+              run: pnpm build
+
+            - name: List files in dist directory
+              run: ls -l bin/
 
             - name: Upload dist directory to Azure Blob Storage
               uses: azure/CLI@v1
@@ -44,11 +47,9 @@ jobs:
                   inlineScript: |
                       az storage blob upload-batch \
                         --account-name ${{ secrets.AZURE_STORAGE_ACCOUNT_NAME }} \
-                        --container-name ${{ secrets.AZURE_STORAGE_CONTAINER_NAME }} \
                         --source bin/ \
-                        --destination . \
+                        --destination cdn/ \
                         --overwrite true
               env:
                   AZURE_STORAGE_ACCOUNT_NAME: ${{ secrets.AZURE_STORAGE_ACCOUNT_NAME }}
-                  AZURE_STORAGE_CONTAINER_NAME: ${{ secrets.AZURE_STORAGE_CONTAINER_NAME }}
                   AZURE_STORAGE_KEY: ${{ secrets.AZURE_STORAGE_KEY }}
